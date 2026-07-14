@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>IRONLOG</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IRONLOG">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#12121a;--card:#1a1a26;--border:#2a2a3a;--accent:#ff3c3c;--accent2:#ff8c42;--accent3:#4ecca3;--text:#e8e8f0;--muted:#6b6b8a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* ── HEADER ── */
+header{padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(10,10,15,.97);backdrop-filter:blur(12px);z-index:100;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hdr-btns{display:flex;gap:7px;}
+.btn-icon{background:var(--card);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;}
+.btn-icon:hover{background:var(--border);}
+
+/* ── WORKOUT BAR ── */
+#workout-bar{display:none;align-items:center;justify-content:space-between;padding:9px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:12px;position:sticky;top:62px;z-index:99;}
+#workout-bar.show{display:flex;}
+.wbar-left{display:flex;align-items:center;gap:10px;}
+.wbar-pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulse 1.2s ease-in-out infinite;}
+.wbar-pulse.paused{animation-play-state:paused;background:var(--muted);}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
+.wbar-label{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.wbar-time{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--text);min-width:72px;}
+.wbar-pause{background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;padding:7px 14px;cursor:pointer;white-space:nowrap;}
+
+/* ── SCREENS ── */
+.screen{display:none;}.screen.active{display:block;}
+
+/* ── DAY TABS ── */
+.day-tabs{display:flex;gap:7px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;}
+.day-tabs::-webkit-scrollbar{display:none;}
+.day-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;text-transform:uppercase;position:relative;}
+.day-tab.active{color:#000;border-color:transparent;}
+.dot{position:absolute;top:2px;right:3px;width:6px;height:6px;border-radius:50%;background:var(--accent3);display:none;}
+.dot.show{display:block;}
+
+/* ── DAY HEADER ── */
+.day-header{padding:12px 16px 4px;}
+.day-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;line-height:1;}
+.day-subtitle{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.day-progress{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.progress-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+.progress-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap;}
+
+/* ── START WORKOUT BTN (TOP) ── */
+.start-top-wrap{padding:10px 16px 0;}
+.start-top-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent3),#2ab87a);border:none;border-radius:12px;color:#000;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.start-top-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(78,204,163,.3);}
+
+/* ── SECTIONS ── */
+.section-block{padding:8px 16px;}
+.section-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+
+/* ── TEXT BLOCK ── */
+.text-block{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;font-size:13px;line-height:1.9;white-space:pre-wrap;}
+.text-block-title{font-weight:600;color:var(--text);margin-bottom:6px;font-size:14px;}
+
+/* ── EXERCISE CARDS ── */
+.exercise-list{display:flex;flex-direction:column;gap:8px;}
+.exercise-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .3s,opacity .3s;}
+.exercise-card.done{border-color:var(--accent3);opacity:.72;}
+.exercise-main{padding:11px 13px;display:flex;align-items:flex-start;gap:9px;}
+.exercise-num{font-family:'Bebas Neue',sans-serif;font-size:18px;min-width:24px;text-align:center;opacity:.5;padding-top:2px;}
+.exercise-info{flex:1;min-width:0;}
+.exercise-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.exercise-meta{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;}
+.meta-chip{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--muted);background:var(--surface);padding:2px 7px;border-radius:20px;border:1px solid var(--border);}
+.meta-chip span:first-child{opacity:.6;font-size:9px;text-transform:uppercase;}
+.ex-time-chip{display:none;align-items:center;gap:4px;font-size:11px;color:var(--accent3);background:rgba(78,204,163,.08);padding:2px 8px;border-radius:20px;border:1px solid rgba(78,204,163,.2);margin-top:4px;}
+.ex-time-chip.show{display:flex;}
+
+/* ── LOAD ── */
+.load-row{display:flex;align-items:center;gap:7px;margin-top:7px;}
+.load-label{font-size:11px;color:var(--muted);}
+.load-input{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:3px 7px;font-size:12px;font-family:'Space Mono',monospace;width:66px;outline:none;transition:border-color .2s;}
+.load-input:focus{border-color:var(--accent3);}
+.load-unit{font-size:11px;color:var(--muted);}
+
+/* ── SERIES DOTS ── */
+.series-row{display:flex;align-items:center;gap:5px;margin-top:7px;flex-wrap:wrap;}
+.series-label{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-right:2px;}
+.serie-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:'Space Mono',monospace;color:var(--muted);font-weight:700;}
+.serie-dot.done{border-color:currentColor;background:currentColor;}
+.serie-dot.done::after{content:'✓';color:#000;font-size:10px;font-weight:900;}
+
+/* ── EX ACTIONS ── */
+.ex-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;padding-top:2px;}
+.yt-btn{background:rgba(255,60,60,.1);border:1px solid rgba(255,60,60,.25);color:var(--accent);border-radius:9px;padding:5px 9px;font-family:'Space Mono',monospace;font-size:9px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.yt-btn:hover{background:rgba(255,60,60,.22);}
+.timer-btn{background:rgba(78,204,163,.1);border:1px solid rgba(78,204,163,.25);color:var(--accent3);border-radius:9px;padding:5px 9px;font-family:'Space Mono',monospace;font-size:9px;cursor:pointer;white-space:nowrap;transition:all .2s;display:none;}
+.timer-btn.visible{display:block;}
+/* ── PLAY BTN ── */
+.play-btn{background:rgba(78,204,163,.15);border:1.5px solid rgba(78,204,163,.4);color:var(--accent3);border-radius:9px;padding:6px 10px;font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:1px;cursor:pointer;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:4px;}
+.play-btn:hover{background:rgba(78,204,163,.28);}
+.play-btn.running{background:rgba(255,140,66,.15);border-color:rgba(255,140,66,.5);color:var(--accent2);}
+.play-btn.finished{background:rgba(78,204,163,.08);border-color:rgba(78,204,163,.2);color:var(--accent3);opacity:.6;cursor:default;}
+
+/* ── YT PANEL ── */
+.yt-panel{display:none;border-top:1px solid var(--border);padding:10px 13px;background:rgba(0,0,0,.2);}
+.yt-panel.open{display:block;}
+.yt-panel-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:8px;}
+.yt-links{display:flex;flex-direction:column;gap:6px;}
+.yt-link{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--text);transition:all .2s;}
+.yt-link:hover{border-color:var(--accent);}
+.yt-link-icon{font-size:14px;flex-shrink:0;}
+.yt-link-info{flex:1;}
+.yt-link-title{font-size:12px;font-weight:500;}
+.yt-link-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.yt-link-arrow{color:var(--accent);font-size:12px;flex-shrink:0;}
+
+/* ── REST TIMER OVERLAY ── */
+#timer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+#timer-overlay.show{display:flex;}
+.timer-title{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-bottom:6px;}
+.timer-exercise{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--text);margin-bottom:24px;text-align:center;padding:0 24px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.timer-circle{position:relative;width:180px;height:180px;margin-bottom:24px;}
+.timer-svg{transform:rotate(-90deg);}
+.timer-track{fill:none;stroke:var(--border);stroke-width:8;}
+.timer-progress{fill:none;stroke:var(--accent3);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s linear;}
+.timer-count{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.timer-seconds{font-family:'Bebas Neue',sans-serif;font-size:60px;letter-spacing:2px;line-height:1;color:var(--text);}
+.timer-unit{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;}
+.timer-actions{display:flex;gap:12px;}
+.timer-skip{background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:12px;padding:12px 22px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;}
+.timer-add{background:var(--card);border:1px solid var(--accent3);color:var(--accent3);border-radius:12px;padding:12px 22px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;}
+
+/* ── EX COUNTDOWN OVERLAY (seg timer — vermelho) ── */
+#ex-countdown-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:510;display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+#ex-countdown-overlay.show{display:flex;}
+.ex-cd-title{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:6px;}
+.ex-cd-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--text);margin-bottom:24px;text-align:center;padding:0 24px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ex-cd-circle{position:relative;width:180px;height:180px;margin-bottom:24px;}
+.ex-cd-svg{transform:rotate(-90deg);}
+.ex-cd-track{fill:none;stroke:var(--border);stroke-width:8;}
+.ex-cd-progress{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .5s linear;}
+.ex-cd-count{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ex-cd-seconds{font-family:'Bebas Neue',sans-serif;font-size:60px;letter-spacing:2px;line-height:1;color:var(--accent);}
+.ex-cd-unit{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;}
+.ex-cd-series-label{font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);letter-spacing:1px;margin-bottom:22px;}
+.ex-cd-actions{display:flex;gap:12px;}
+.ex-cd-ok{background:rgba(78,204,163,.15);border:1.5px solid rgba(78,204,163,.45);color:var(--accent3);border-radius:12px;padding:14px 24px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;}
+.ex-cd-skip{display:none;background:rgba(78,204,163,.15);border:1.5px solid rgba(78,204,163,.45);color:var(--accent3);border-radius:12px;padding:14px 24px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;cursor:pointer;}
+.ex-cd-finish{background:rgba(255,60,60,.12);border:1.5px solid rgba(255,60,60,.45);color:var(--accent);border-radius:12px;padding:14px 24px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;}
+#ex-countdown-overlay.resting .ex-cd-progress{stroke:var(--accent3);}
+#ex-countdown-overlay.resting .ex-cd-seconds{color:var(--accent3);}
+#ex-countdown-overlay.resting .ex-cd-ok{display:none;}
+#ex-countdown-overlay.resting .ex-cd-skip{display:block;}
+#ex-countdown-overlay.ex-cd-work .ex-cd-svg{display:none;}
+#ex-countdown-overlay.ex-cd-work .ex-cd-circle{width:auto;height:auto;position:static;margin-bottom:28px;}
+#ex-countdown-overlay.ex-cd-work .ex-cd-count{position:static;}
+#ex-countdown-overlay.ex-cd-work .ex-cd-seconds{font-size:48px;letter-spacing:3px;font-family:'Space Mono',monospace;font-weight:700;}
+#ex-countdown-overlay.ex-cd-work .ex-cd-unit{display:none;}
+
+/* ── NOTE MODAL ── */
+#note-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:400;display:none;align-items:flex-end;backdrop-filter:blur(6px);}
+#note-modal.show{display:flex;}
+.note-sheet{background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:20px 20px 36px;width:100%;}
+.note-sheet-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:4px;}
+.note-sheet-sub{font-size:12px;color:var(--muted);margin-bottom:12px;}
+.note-duration{font-family:'Space Mono',monospace;font-size:12px;color:var(--accent3);margin-bottom:12px;padding:8px 12px;background:rgba(78,204,163,.08);border:1px solid rgba(78,204,163,.2);border-radius:8px;text-align:center;}
+.note-textarea{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:12px;font-size:14px;font-family:'DM Sans',sans-serif;resize:none;height:90px;outline:none;transition:border-color .2s;}
+.note-textarea:focus{border-color:var(--accent3);}
+.note-save{margin-top:10px;width:100%;padding:14px;background:linear-gradient(135deg,var(--accent3),#2ab87a);border:none;border-radius:12px;color:#000;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;}
+
+/* ── FINISH BTN ── */
+.finish-btn{margin:10px 16px 10px;width:calc(100% - 32px);padding:13px;background:linear-gradient(135deg,var(--accent),#c0392b);border:none;border-radius:12px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;display:none;}
+.finish-btn.show{display:block;}
+
+/* ── HISTORY ── */
+#screen-history{padding:14px 16px;}
+.hist-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin-bottom:12px;}
+.hist-empty{text-align:center;color:var(--muted);font-size:13px;margin-top:40px;line-height:2;}
+.hist-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:9px;}
+.hist-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:4px;}
+.hist-day{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:9px;}
+.hist-exercises{display:flex;flex-direction:column;gap:5px;}
+.hist-ex{display:flex;align-items:center;justify-content:space-between;font-size:13px;gap:8px;}
+.hist-ex-name{color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.hist-ex-right{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.hist-ex-load{color:var(--accent3);font-family:'Space Mono',monospace;font-size:11px;}
+.hist-ex-series{color:var(--muted);font-size:11px;}
+.hist-ex-time{color:var(--accent2);font-family:'Space Mono',monospace;font-size:10px;}
+.hist-note{margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
+.hist-note-label{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;letter-spacing:1px;margin-bottom:3px;}
+.hist-note-text{font-size:13px;color:var(--text);line-height:1.6;}
+.hist-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 4px;flex-shrink:0;}
+.hist-del:hover{color:var(--accent);}
+
+/* ── ADD SCREEN ── */
+#screen-add{padding:14px 16px;}
+.add-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin-bottom:5px;}
+.add-desc{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
+.paste-area{width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:12px;color:var(--text);font-family:'Space Mono',monospace;font-size:12px;line-height:1.7;resize:vertical;min-height:200px;outline:none;transition:border-color .2s;}
+.paste-area:focus{border-color:var(--accent);}
+.paste-area::placeholder{color:var(--muted);}
+.parse-btn{margin-top:10px;width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:14px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;cursor:pointer;transition:all .2s;}
+.parse-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(255,60,60,.3);}
+.parse-status{margin-top:10px;padding:11px 13px;border-radius:10px;font-size:13px;display:none;}
+.parse-status.ok{background:rgba(78,204,163,.1);border:1px solid rgba(78,204,163,.25);color:var(--accent3);}
+.parse-status.err{background:rgba(255,60,60,.1);border:1px solid rgba(255,60,60,.25);color:var(--accent);}
+
+/* ── EMPTY ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:58vh;padding:40px 20px;text-align:center;}
+.empty-icon{font-size:54px;margin-bottom:14px;opacity:.3;}
+.empty-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;color:var(--muted);margin-bottom:6px;}
+.empty-desc{font-size:13px;color:var(--muted);line-height:1.6;max-width:260px;}
+.empty-cta{margin-top:18px;padding:12px 24px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,15,.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;padding:6px 0 14px;z-index:100;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;cursor:pointer;color:var(--muted);border:none;background:none;transition:color .2s;}
+.nav-item.active{color:var(--accent);}
+.nav-icon{font-size:18px;}
+.nav-label{font-size:9px;font-family:'Space Mono',monospace;letter-spacing:.5px;}
+
+.scroll-content{padding-bottom:74px;}
+.toast{position:fixed;top:66px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--card);border:1px solid var(--border);border-radius:12px;padding:9px 16px;font-size:13px;color:var(--text);z-index:600;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── EXIT CONFIRM MODAL ── */
+#exit-modal{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);padding:24px;}
+#exit-modal.show{display:flex;}
+.exit-sheet{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 24px 20px;width:100%;max-width:340px;text-align:center;}
+.exit-icon{font-size:40px;margin-bottom:12px;}
+.exit-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;color:var(--accent);margin-bottom:6px;}
+.exit-subtitle{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:8px;}
+.exit-timer-badge{font-family:'Space Mono',monospace;font-size:14px;color:var(--accent3);background:rgba(78,204,163,.1);border:1px solid rgba(78,204,163,.2);border-radius:8px;padding:8px 14px;margin-bottom:20px;display:inline-block;}
+.exit-btns{display:flex;flex-direction:column;gap:9px;}
+.exit-btn-leave{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),#c0392b);border:none;border-radius:12px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;}
+.exit-btn-stay{width:100%;padding:13px;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">IRONLOG</div>
+  <div class="hdr-btns">
+    <button class="btn-icon" id="btn-fullscreen" title="Tela cheia">⛶</button>
+    <button class="btn-icon" id="btn-export" title="Exportar backup">💾</button>
+    <button class="btn-icon" id="btn-import-trigger" title="Importar backup">📂</button>
+    <button class="btn-icon" id="btn-clear" title="Limpar treinos">🗑️</button>
+  </div>
+  <input type="file" id="import-file" accept=".json" style="display:none">
+</header>
+
+<!-- WORKOUT STOPWATCH BAR -->
+<div id="workout-bar">
+  <div class="wbar-left">
+    <div class="wbar-pulse" id="wbar-pulse"></div>
+    <div>
+      <div class="wbar-label">TREINO EM ANDAMENTO</div>
+      <div class="wbar-time" id="wbar-display">00:00</div>
+    </div>
+  </div>
+  <button class="wbar-pause" id="wbar-pause-btn" onclick="toggleWorkoutPause()">PAUSAR</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- REST TIMER -->
+<div id="timer-overlay">
+  <div class="timer-title">⏱ DESCANSO</div>
+  <div class="timer-exercise" id="timer-exname"></div>
+  <div class="timer-circle">
+    <svg class="timer-svg" width="180" height="180" viewBox="0 0 180 180">
+      <circle class="timer-track" cx="90" cy="90" r="82"/>
+      <circle class="timer-progress" id="timer-arc" cx="90" cy="90" r="82" stroke-dasharray="515" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-count">
+      <div class="timer-seconds" id="timer-display">60</div>
+      <div class="timer-unit">SEG</div>
+    </div>
+  </div>
+  <div class="timer-actions">
+    <button class="timer-add" onclick="addTimerTime(15)">+15s</button>
+    <button class="timer-skip" onclick="stopTimer()">PULAR</button>
+  </div>
+</div>
+
+<!-- EX COUNTDOWN OVERLAY -->
+<div id="ex-countdown-overlay">
+  <div class="ex-cd-title" id="ex-cd-title">⏱ EXERCÍCIO EM ANDAMENTO</div>
+  <div class="ex-cd-name" id="ex-cd-name"></div>
+  <div class="ex-cd-circle">
+    <svg class="ex-cd-svg" width="180" height="180" viewBox="0 0 180 180">
+      <circle class="ex-cd-track" cx="90" cy="90" r="82"/>
+      <circle class="ex-cd-progress" id="ex-cd-arc" cx="90" cy="90" r="82" stroke-dasharray="515" stroke-dashoffset="0"/>
+    </svg>
+    <div class="ex-cd-count">
+      <div class="ex-cd-seconds" id="ex-cd-display">0</div>
+      <div class="ex-cd-unit" id="ex-cd-unit">SEG</div>
+    </div>
+  </div>
+  <div class="ex-cd-series-label" id="ex-cd-series-label">SÉRIE 1/3</div>
+  <div class="ex-cd-actions">
+    <button class="ex-cd-ok" id="ex-cd-ok-btn" onclick="exCdMarkSerie()">✓ OK</button>
+    <button class="ex-cd-skip" id="ex-cd-skip-btn" onclick="exCdSkipRest()">⏭ PULAR DESCANSO</button>
+    <button class="ex-cd-finish" onclick="exCdFinalizar()">■ FINALIZAR</button>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div id="note-modal">
+  <div class="note-sheet">
+    <div class="note-sheet-title">ENCERRAR TREINO</div>
+    <div class="note-sheet-sub">Registre uma anotação opcional antes de salvar.</div>
+    <div class="note-duration" id="note-duration"></div>
+    <textarea class="note-textarea" id="note-input" placeholder="Como foi o treino? Cargas a ajustar? Algo a observar..."></textarea>
+    <button class="note-save" id="note-save-btn">✓ SALVAR NO HISTÓRICO</button>
+  </div>
+</div>
+
+<!-- SCREEN: TREINO -->
+<div class="screen active scroll-content" id="screen-workout">
+  <div id="workout-content"></div>
+  <button class="finish-btn" id="finish-btn" onclick="openNoteModal()">⏹ ENCERRAR TREINO</button>
+</div>
+
+<!-- SCREEN: HISTÓRICO -->
+<div class="screen scroll-content" id="screen-history">
+  <div class="hist-title">HISTÓRICO</div>
+  <div id="history-content"></div>
+</div>
+
+<!-- SCREEN: ADICIONAR -->
+<div class="screen scroll-content" id="screen-add">
+  <div class="add-title">ADICIONAR TREINO</div>
+  <p class="add-desc">Cole seu treino abaixo — do ChatGPT, lista simples, tabelas. O app identifica tudo automaticamente.</p>
+  <textarea class="paste-area" id="workout-input" placeholder="SEGUNDA
+
+Afundo parado → 3x 10/10
+Prancha → 3x 45–60 seg
+Bicicleta ergométrica → 1x 30–40 min
+Supino Barra Reta → 4x 10-12
+..."></textarea>
+  <button class="parse-btn" id="parse-btn">⚡ PROCESSAR TREINO</button>
+  <div class="parse-status" id="parse-status"></div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" data-screen="workout"><span class="nav-icon">💪</span><span class="nav-label">TREINO</span></button>
+  <button class="nav-item" data-screen="history"><span class="nav-icon">📋</span><span class="nav-label">HISTÓRICO</span></button>
+  <button class="nav-item" data-screen="add"><span class="nav-icon">➕</span><span class="nav-label">ADICIONAR</span></button>
+</nav>
+
+<!-- EXIT GUARD MODAL -->
+<div id="exit-modal">
+  <div class="exit-sheet">
+    <div class="exit-icon">⚠️</div>
+    <div class="exit-title">SAIR DO TREINO?</div>
+    <div class="exit-subtitle">Você tem um treino em andamento. Se sair agora, o cronômetro será perdido.</div>
+    <div class="exit-timer-badge" id="exit-timer-badge">⏱ 00:00</div>
+    <div class="exit-btns">
+      <button class="exit-btn-stay" onclick="dismissExitModal()">↩ CONTINUAR TREINO</button>
+      <button class="exit-btn-leave" onclick="confirmExit()">✕ SAIR MESMO ASSIM</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let workoutData=null, historyData=[], activeDay=null, sessionState={};
+// exTimers: { 'dayName-idx': { startMs, elapsed } }
+let exTimers = {};
+try{workoutData=JSON.parse(localStorage.getItem('ironlog_v5')||'null');}catch(e){}
+try{historyData=JSON.parse(localStorage.getItem('ironlog_hist')||'[]');}catch(e){}
+activeDay=workoutData?.days?.[0]?.name||null;
+
+const DAY_COLORS={'SEGUNDA':'#ff3c3c','TERÇA':'#4d9fff','TERCA':'#4d9fff','QUARTA':'#4ecca3','QUINTA':'#ff8c42','SEXTA':'#b066ff','SÁBADO':'#ffdd57','SABADO':'#ffdd57','DOMINGO':'#ff6b9d'};
+const DAY_NAMES_LIST=['SEGUNDA','TERÇA','TERCA','QUARTA','QUINTA','SEXTA','SÁBADO','SABADO','DOMINGO'];
+function saveWorkout(){localStorage.setItem('ironlog_v5',JSON.stringify(workoutData));}
+function saveHistory(){localStorage.setItem('ironlog_hist',JSON.stringify(historyData));}
+
+// ── SESSÃO EM ANDAMENTO (protege contra o app fechar/minimizar) ──
+function saveSession(){
+  try{
+    localStorage.setItem('ironlog_session', JSON.stringify({
+      activeDay, sessionState, exTimers,
+      workoutStartTime, workoutElapsed, workoutRunning,
+      exCd: (typeof exCdDayName!=='undefined' && exCdDayName!==null) ? {
+        mode: exCdMode, dayName: exCdDayName, idx: exCdIdx, exName: exCdExName,
+        seriesTotal: exCdSeriesTotal, restSecs: exCdRestSecs,
+        workStart: exCdWorkStart, restEnd: exCdRestEnd
+      } : null
+    }));
+  }catch(e){}
+}
+function loadSessionSaved(){
+  try{ return JSON.parse(localStorage.getItem('ironlog_session')||'null'); }catch(e){ return null; }
+}
+function clearSession(){
+  localStorage.removeItem('ironlog_session');
+}
+
+// ════════════════════════════════════════════════════════════
+// TELA CHEIA
+// ════════════════════════════════════════════════════════════
+document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+function toggleFullscreen(){
+  if(!document.fullscreenElement){
+    (document.documentElement.requestFullscreen?.() || Promise.reject())
+      .then(()=>{ document.getElementById('btn-fullscreen').textContent='⛶'; })
+      .catch(()=>showToast('⚠️ Tela cheia não suportada neste navegador'));
+  } else {
+    document.exitFullscreen?.().catch(()=>{});
+  }
+}
+document.addEventListener('fullscreenchange', ()=>{
+  document.getElementById('btn-fullscreen').textContent = document.fullscreenElement ? '✕' : '⛶';
+});
+
+// ════════════════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════════════════
+document.querySelectorAll('.nav-item').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-'+btn.dataset.screen).classList.add('active');
+    if(btn.dataset.screen==='history') renderHistory();
+  });
+});
+document.getElementById('btn-clear').addEventListener('click',()=>{
+  if(!confirm('Limpar todos os treinos salvos?')) return;
+  localStorage.removeItem('ironlog_v5');
+  workoutData=null;activeDay=null;sessionState={};exTimers={};
+  clearSession();
+  renderWorkout();showToast('🗑️ Treinos removidos');
+});
+
+// ════════════════════════════════════════════════════════════
+// SMART PARSER
+// ════════════════════════════════════════════════════════════
+function normStr(s){return s.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z]/g,'');}
+
+function findDayInLine(line){
+  const n=normStr(line);
+  for(const d of DAY_NAMES_LIST){if(n.includes(normStr(d)))return d;}
+  return null;
+}
+
+function isTableHeader(line){
+  const l=line.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return l.includes('exerc')&&(l.includes('ser')||l.includes('rep')||l.includes('desc')||l.includes('tempo'));
+}
+
+// A line is ONLY a valid exercise if it meets stricter criteria:
+// - not a bullet/note line (doesn't start with common note words)
+// - not a title/heading variant
+// - when in table mode: must parse as table row
+// - when in list mode: must look like a gym exercise name
+// Note starters — only applied when there is NO arrow format on the line
+const NOTE_STARTERS = /^(depois|antes|obs|nota|aten|respir|inspir|expir|ajuda|aquec|volta|dicas?|importante|lembr|foco|concent|evite?|mantenha|realize|execute|sinta|pausa|intervalo|minutos?|horas?)/i;
+// Section headers — always open a new text/detail section, never an exercise
+const SECTION_HEADERS = /^(depois|antes|aquecimento|volta a calma|observa|dicas?|notas?|cardio principal|respira)/i;
+
+function looksLikeExerciseName(name, hasArrow) {
+  if (!name || name.length < 3) return false;
+  // Arrow format bypasses all heuristic blocks — the format itself is proof it's an exercise
+  if (hasArrow) return name.length <= 80;
+  if (NOTE_STARTERS.test(name.trim())) return false;
+  if (SECTION_HEADERS.test(name.trim())) return false;
+  if (name.length > 60) return false;
+  return true;
+}
+
+// Returns true if the line contains the arrow format  "Nome → NxREPS"
+function isArrowLine(line) {
+  return /→\s*\d+\s*[xX×]/.test(line);
+}
+
+function parseExLine(line) {
+  const t = line.trim()
+    .replace(/^[\d]+[.)]\s*/, '')
+    .replace(/^[-*•]\s*/, '');
+
+  // ── ARROW FORMAT — highest priority, handles all ChatGPT export cases:
+  //   "Afundo parado → 3x 10/10"       unilateral
+  //   "Agachamento búlgaro → 3x 8-10"  range
+  //   "Prancha → 3x 45–60 seg"         timed (seg)
+  //   "Bicicleta ergométrica → 1x 30–40 min"  timed (min)
+  //   "Step-up → 3x 10/10"             unilateral with hyphen name
+  //   "Elevação de pernas → 3x 10"     plain
+  if (isArrowLine(t)) {
+    // Reps: one or more digit groups separated by - – / followed by optional seg|min
+    const arrowMatch = t.match(/^(.+?)\s*→\s*(\d+)\s*[xX×]\s*([\d]+(?:[\/\-–][\d]+)*(?:\s*(?:seg|min))?)\s*(?:[|,]\s*(.+))?$/i);
+    if (arrowMatch) {
+      return {
+        name:   arrowMatch[1].trim(),
+        series: arrowMatch[2].trim(),
+        reps:   arrowMatch[3].trim(),
+        rest:   arrowMatch[4]?.trim() || ''
+      };
+    }
+    // Fallback: capture whatever comes after NxX even if reps pattern is unusual
+    const arrowLoose = t.match(/^(.+?)\s*→\s*(\d+)\s*[xX×]\s*(.+?)$/i);
+    if (arrowLoose) {
+      return {
+        name:   arrowLoose[1].trim(),
+        series: arrowLoose[2].trim(),
+        reps:   arrowLoose[3].trim(),
+        rest:   ''
+      };
+    }
+  }
+
+  // Pipe-separated table row
+  if (t.includes('|')) {
+    const p = t.split('|').map(s=>s.trim()).filter(Boolean);
+    if (p.length >= 2 && p[0].length > 2 && !/^\d+$/.test(p[0]) && looksLikeExerciseName(p[0], false))
+      return {name:p[0], series:p[1]||'', reps:p[2]||'', rest:p[3]||''};
+    return null;
+  }
+
+  // Compacted: "Leg press415–2060s"
+  const c = t.match(/^(.+?)\s*(\d)\s*(\d[\d\-–x×\/]+)\s*(\d+s?)?$/);
+  if (c && c[1].length > 3 && looksLikeExerciseName(c[1], false))
+    return {name:c[1].trim(), series:c[2], reps:c[3], rest:c[4]||''};
+
+  // Spaced: "Leg press   4   15-20   60s"
+  const sp = t.match(/^(.+?)\s{2,}(\d+)\s+(\S+)\s*(\d+s?)?/);
+  if (sp && sp[1].length > 2 && !/^\d/.test(sp[1]) && looksLikeExerciseName(sp[1], false))
+    return {name:sp[1].trim(), series:sp[2], reps:sp[3], rest:sp[4]||''};
+
+  // Plain exercise name (simple list) — only if it looks like a gym exercise
+  if (looksLikeExerciseName(t, false) && !/\s(ou|e|de|da|do|para|com|sem|na|no)\s/i.test(t) || isGymExercise(t))
+    return {name:t, series:'', reps:'', rest:''};
+
+  return null;
+}
+
+// Heuristic: does this string look like a gym exercise?
+const GYM_KEYWORDS = /supino|agachamento|remada|puxada|elevação|rosca|tríceps|triceps|bíceps|biceps|leg|press|extensora|flexora|panturrilha|afundo|búlgaro|bulgaro|terra|stiff|cadeira|abdominais?|prancha|crunch|pulldown|desenvolvimento|crucifixo|voador|paralela|barra|halter|máquina|maquina|pulley|cable|corda|plank|sit.up|abdominal|lombar|glúteo|gluteo|adutora|abdutora|hip|thrust|hack|smith|scott|pallof|ab.wheel|elevação/i;
+
+function isGymExercise(s) {
+  return GYM_KEYWORDS.test(s);
+}
+
+function isSkippable(line) {
+  return /^[-–—*•#=_]{2,}$/.test(line.trim());
+}
+
+function parseWorkout(text) {
+  const lines = text.split('\n');
+  const days = [];
+  let cur = null, curSec = null, textBuf = [], inTable = false;
+
+  function flushText() {
+    const content = textBuf.join('\n').trim();
+    if (content && cur) cur.sections.push({type:'text', label:'Detalhes', content});
+    textBuf = [];
+  }
+  function flushSec() {
+    if (curSec?.items?.length && cur) cur.sections.push(curSec);
+    curSec = null; inTable = false;
+  }
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { if (inTable) { flushSec(); } else { textBuf.push(''); } continue; }
+    if (isSkippable(line)) continue;
+
+    // Day header?
+    const dayFound = findDayInLine(line);
+    if (dayFound && line.length < 150) {
+      flushText(); flushSec();
+      cur = {name:dayFound, title:line.replace(/\s+/g,' ').replace(/[:\-–]+$/,'').trim(), sections:[]};
+      days.push(cur); continue;
+    }
+
+    if (!cur) { textBuf.push(line); continue; }
+
+    // Table header → start exercise section
+    if (isTableHeader(line)) {
+      flushText();
+      if (!curSec) curSec = {type:'exercises', label:'Exercícios', items:[]};
+      inTable = true; continue;
+    }
+
+    // Section sub-header (e.g. "Depois", "Cardio principal (40-45 min):")
+    if (SECTION_HEADERS.test(line) && !inTable) {
+      flushSec();
+      // Start a new text section with this as title
+      textBuf.push(line);
+      continue;
+    }
+
+    if (inTable) {
+      // In table mode: only accept rows that parse with series/reps data
+      const ex = parseExLine(line);
+      if (ex && (ex.series || ex.reps)) {
+        curSec = curSec || {type:'exercises', label:'Exercícios', items:[]};
+        curSec.items.push(ex);
+      } else {
+        // End of table, treat as text
+        flushSec();
+        textBuf.push(line);
+      }
+      continue;
+    }
+
+    // Not in table: try exercise if it strongly looks like one
+    const ex = parseExLine(line);
+    // Arrow format (→) is always a valid exercise regardless of keyword/name check
+    if (ex && (isGymExercise(ex.name) || isArrowLine(line))) {
+      if (textBuf.join('').trim()) flushText();
+      if (!curSec) curSec = {type:'exercises', label:'Exercícios', items:[]};
+      curSec.items.push(ex);
+      continue;
+    }
+
+    // Everything else is text/notes
+    // If we were building exercises with plain names (simple list), check if previous lines were exercises
+    if (ex && curSec?.items?.length && !ex.series) {
+      // Continue the exercise list (we're in a plain list block)
+      curSec.items.push(ex);
+      continue;
+    }
+
+    // Otherwise flush exercises and treat as text
+    if (curSec && !ex) flushSec();
+    textBuf.push(line);
+  }
+
+  flushText(); flushSec();
+
+  // Fallback
+  for (const d of days)
+    if (!d.sections.length) d.sections.push({type:'text', label:'Detalhes', content:d.title});
+
+  return {days};
+}
+
+// ════════════════════════════════════════════════════════════
+// SESSION HELPERS
+// ════════════════════════════════════════════════════════════
+function getExerciseData(dayName, idx) {
+  const day = workoutData?.days?.find(d => d.name === dayName);
+  if (!day) return null;
+  for (let si = 0; si < day.sections.length; si++) {
+    const sec = day.sections[si];
+    if (sec.type !== 'exercises') continue;
+    for (let ei = 0; ei < sec.items.length; ei++) {
+      if (si * 100 + ei === idx) return sec.items[ei];
+    }
+  }
+  return null;
+}
+function getExState(day,idx){
+  if(!sessionState[day])sessionState[day]={};
+  if(!sessionState[day][idx])sessionState[day][idx]={done:0,load:''};
+  return sessionState[day][idx];
+}
+function totalSeries(ex){const n=parseInt(ex.series);return isNaN(n)?3:Math.max(1,Math.min(n,10));}
+function dayProgress(dayName){
+  const day=workoutData?.days?.find(d=>d.name===dayName);
+  if(!day)return{done:0,total:0};
+  let total=0,done=0;
+  day.sections.forEach((sec,si)=>{
+    if(sec.type!=='exercises')return;
+    sec.items.forEach((ex,ei)=>{
+      const idx=si*100+ei; const s=totalSeries(ex);
+      total+=s; done+=Math.min(getExState(dayName,idx).done,s);
+    });
+  });
+  return{done,total};
+}
+
+// Exercise timer helpers
+function exTimerKey(dayName, idx) { return dayName + '-' + idx; }
+function startExTimer(dayName, idx) {
+  const key = exTimerKey(dayName, idx);
+  if (!exTimers[key]) exTimers[key] = {startMs: Date.now(), elapsed: 0};
+  else if (!exTimers[key].startMs) exTimers[key].startMs = Date.now();
+}
+function stopExTimer(dayName, idx) {
+  const key = exTimerKey(dayName, idx);
+  if (exTimers[key]?.startMs) {
+    exTimers[key].elapsed = (exTimers[key].elapsed||0) + (Date.now() - exTimers[key].startMs);
+    exTimers[key].startMs = null;
+  }
+}
+function getExElapsed(dayName, idx) {
+  const key = exTimerKey(dayName, idx);
+  return exTimers[key]?.elapsed || 0;
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER WORKOUT
+// ════════════════════════════════════════════════════════════
+function renderWorkout() {
+  const container = document.getElementById('workout-content');
+  const finBtn = document.getElementById('finish-btn');
+
+  if (!workoutData?.days?.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🏋️</div><div class="empty-title">SEM TREINOS</div><p class="empty-desc">Cole seu treino na aba Adicionar — o app organiza por dia automaticamente.</p><button class="empty-cta" onclick="document.querySelector('[data-screen=add]').click()">ADICIONAR TREINO</button></div>`;
+    finBtn.classList.remove('show'); return;
+  }
+
+  if (!activeDay) activeDay = workoutData.days[0].name;
+  const day = workoutData.days.find(d=>d.name===activeDay) || workoutData.days[0];
+  const color = DAY_COLORS[day.name] || '#ff3c3c';
+  const prog = dayProgress(day.name);
+  const pct = prog.total > 0 ? Math.round((prog.done/prog.total)*100) : 0;
+
+  const tabsHTML = workoutData.days.map(d => {
+    const c = DAY_COLORS[d.name]||'#ff3c3c'; const isAct = d.name===day.name;
+    const p = dayProgress(d.name);
+    return `<button class="day-tab${isAct?' active':''}" data-day="${d.name}" style="${isAct?`background:${c};border-color:${c}`:`--dc:${c}`}">${d.name}<span class="dot${p.done>0?' show':''}"></span></button>`;
+  }).join('');
+
+  // Start workout button at top
+  const showStart = !workoutRunning && workoutElapsed === 0;
+  const startBtnHTML = showStart ? `
+    <div class="start-top-wrap">
+      <button class="start-top-btn" onclick="startWorkoutTimer()">▶ INICIAR TREINO</button>
+    </div>` : '';
+
+  const sectionsHTML = day.sections.map((sec, si) => {
+    if (sec.type === 'exercises' && sec.items?.length) {
+      const exHTML = sec.items.map((ex, ei) => {
+        const idx = si*100+ei;
+        const state = getExState(day.name, idx);
+        const total = totalSeries(ex);
+        const isDone = state.done >= total;
+        const restSecs = parseRestSecs(ex.rest) || 60;
+        const elapsed = getExElapsed(day.name, idx);
+        const elapsedStr = elapsed > 0 ? formatDuration(elapsed) : null;
+
+        const dots = Array.from({length:total},(_,k)=>`
+          <div class="serie-dot${k<state.done?' done':''}" style="color:${color}"
+            onclick="markSerie('${day.name}',${idx},${k+1},'${escAttr(ex.name)}',${restSecs},${total})">
+            ${k<state.done?'':String(k+1)}
+          </div>`).join('');
+
+        const isRunning = exTimers[exTimerKey(day.name, idx)]?.startMs != null;
+        const playLabel = isDone ? '✓ FEITO' : isRunning ? '⏸ PARAR' : state.done > 0 ? '▶ RETOMAR' : '▶ PLAY';
+        const playClass = isDone ? 'finished' : isRunning ? 'running' : '';
+
+        return `
+          <div class="exercise-card${isDone?' done':''}" id="excard-${day.name}-${idx}">
+            <div class="exercise-main">
+              <div class="exercise-num" style="color:${color}">${String(ei+1).padStart(2,'0')}</div>
+              <div class="exercise-info">
+                <div class="exercise-name">${esc(ex.name)}</div>
+                <div class="exercise-meta">
+                  ${ex.series?`<div class="meta-chip"><span>SÉR</span>${esc(ex.series)}</div>`:''}
+                  ${ex.reps?`<div class="meta-chip"><span>REPS</span>${esc(ex.reps)}</div>`:''}
+                  ${ex.rest?`<div class="meta-chip"><span>DESC</span>${esc(ex.rest)}</div>`:''}
+                </div>
+                <div class="ex-time-chip${elapsedStr?' show':''}" id="extc-${day.name}-${idx}">
+                  ⏱ ${elapsedStr||''}
+                </div>
+                <div class="load-row">
+                  <span class="load-label">Carga:</span>
+                  <input class="load-input" type="number" min="0" step="0.5" placeholder="—"
+                    value="${esc(state.load || ex.lastLoad || '')}"
+                    onchange="saveLoad('${day.name}',${idx},this.value)"
+                    inputmode="decimal">
+                  <span class="load-unit">kg</span>
+                </div>
+                <div class="series-row">
+                  <span class="series-label">SÉRIES</span>${dots}
+                </div>
+              </div>
+              <div class="ex-actions">
+                <button class="play-btn ${playClass}" id="playbtn-${day.name}-${idx}"
+                  onclick="toggleExPlay('${day.name}',${idx})"
+                  ${isDone?'disabled':''}>${playLabel}</button>
+                <button class="yt-btn" onclick="toggleYT(this)">▶ VER</button>
+                <button class="timer-btn${state.done>0&&!isDone?' visible':''}"
+                  id="tbtn-${day.name}-${idx}"
+                  onclick="startTimer(${restSecs},'${escAttr(ex.name)}')">⏱ ${restSecs}s</button>
+              </div>
+            </div>
+            <div class="yt-panel">
+              <div class="yt-panel-label">REFERÊNCIAS NO YOUTUBE</div>
+              <div class="yt-links">${ytLinks(ex.name)}</div>
+            </div>
+          </div>`;
+      }).join('');
+      return `<div class="section-block"><div class="section-label">${esc(sec.label)}</div><div class="exercise-list">${exHTML}</div></div>`;
+    }
+    if (sec.type === 'text' && sec.content) {
+      return `<div class="section-block"><div class="section-label">${esc(sec.label)}</div><div class="text-block">${esc(sec.content)}</div></div>`;
+    }
+    return '';
+  }).join('');
+
+  container.innerHTML = `
+    <div class="day-tabs">${tabsHTML}</div>
+    <div class="day-header">
+      <div class="day-title" style="color:${color}">${esc(day.name)}</div>
+      <div class="day-subtitle">${esc(day.title)}</div>
+      <div class="day-progress">
+        <div class="progress-bar"><div class="progress-fill" style="background:${color};width:${pct}%"></div></div>
+        <div class="progress-label">${prog.done}/${prog.total} séries</div>
+      </div>
+    </div>
+    ${startBtnHTML}
+    ${sectionsHTML}`;
+
+  container.querySelectorAll('.day-tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{ activeDay=tab.dataset.day; renderWorkout(); });
+  });
+
+  finBtn.classList.toggle('show', workoutRunning || workoutElapsed > 0);
+}
+
+function parseRestSecs(r){if(!r)return 60;const m=String(r).match(/(\d+)/);return m?parseInt(m[1]):60;}
+
+// ════════════════════════════════════════════════════════════
+// MARK SERIE
+// ════════════════════════════════════════════════════════════
+function markSerie(dayName, idx, num, exName, restSecs, total, skipAutoRest) {
+  const state = getExState(dayName, idx);
+  const wasZero = state.done === 0;
+  state.done = num <= state.done ? num-1 : num;
+  const isDone = state.done >= total;
+
+  // Exercise timer: start on first series, stop when done
+  if (wasZero && state.done > 0) startExTimer(dayName, idx);
+  if (isDone) stopExTimer(dayName, idx);
+
+  // Update card DOM
+  const card = document.getElementById(`excard-${dayName}-${idx}`);
+  if (card) {
+    card.classList.toggle('done', isDone);
+    card.querySelectorAll('.serie-dot').forEach((dot,k)=>{
+      dot.classList.toggle('done', k < state.done);
+      dot.innerHTML = k < state.done ? '' : String(k+1);
+    });
+    const tbtn = document.getElementById(`tbtn-${dayName}-${idx}`);
+    if (tbtn) tbtn.classList.toggle('visible', state.done > 0 && !isDone);
+
+    // Show ex time chip if done
+    if (isDone) {
+      const elapsed = getExElapsed(dayName, idx);
+      const chip = document.getElementById(`extc-${dayName}-${idx}`);
+      if (chip && elapsed > 0) { chip.innerHTML = '⏱ ' + formatDuration(elapsed); chip.classList.add('show'); }
+      // Update play button to finished state
+      const pBtn = document.getElementById(`playbtn-${dayName}-${idx}`);
+      if (pBtn) { pBtn.textContent = '✓ FEITO'; pBtn.className = 'play-btn finished'; pBtn.disabled = true; }
+    } else {
+      // Sync play button (not finished): show running or idle
+      const key = exTimerKey(dayName, idx);
+      const isRunning = exTimers[key]?.startMs != null;
+      const pBtn = document.getElementById(`playbtn-${dayName}-${idx}`);
+      if (pBtn) {
+        pBtn.className = 'play-btn' + (isRunning ? ' running' : '');
+        pBtn.textContent = isRunning ? '⏸ PARAR' : state.done > 0 ? '▶ RETOMAR' : '▶ PLAY';
+        pBtn.disabled = false;
+      }
+    }
+  }
+
+  // Update progress bar
+  const prog = dayProgress(dayName);
+  const pct = prog.total > 0 ? Math.round((prog.done/prog.total)*100) : 0;
+  const fill = document.querySelector('.progress-fill');
+  const lbl = document.querySelector('.progress-label');
+  if (fill) fill.style.width = pct + '%';
+  if (lbl) lbl.textContent = prog.done + '/' + prog.total + ' séries';
+
+  const tabDot = document.querySelector(`.day-tab[data-day="${dayName}"] .dot`);
+  if (tabDot) tabDot.classList.toggle('show', prog.done > 0);
+  document.getElementById('finish-btn').classList.toggle('show', workoutRunning || workoutElapsed > 0);
+
+  // Auto-start rest timer after completing a series (not the last one)
+  if (state.done > 0 && !isDone && !skipAutoRest) startTimer(restSecs, exName);
+
+  saveSession();
+}
+
+function saveLoad(dayName, idx, value) {
+  getExState(dayName, idx).load = value;
+  // Grava também como "última carga usada" direto no treino, para já aparecer
+  // pré-preenchida da próxima vez — mesmo que o treino atual não seja finalizado.
+  const ex = getExerciseData(dayName, idx);
+  if (ex) { if (value) ex.lastLoad = value; saveWorkout(); }
+  saveSession();
+}
+
+// ════════════════════════════════════════════════════════════
+// PLAY BUTTON — per exercise timer toggle
+// ════════════════════════════════════════════════════════════
+function toggleExPlay(dayName, idx) {
+  const key = exTimerKey(dayName, idx);
+  const timer = exTimers[key];
+  const isRunning = timer?.startMs != null;
+  const btn = document.getElementById(`playbtn-${dayName}-${idx}`);
+
+  if (isRunning) {
+    // Pause
+    stopExTimer(dayName, idx);
+    if (btn) { btn.textContent = '▶ RETOMAR'; btn.classList.remove('running'); }
+  } else {
+    // Exercícios com tempo (SEG ou MIN) abrem o cronômetro em tela cheia
+    const exData = getExerciseData(dayName, idx);
+    if (exData && /seg|min/i.test(exData.reps || '')) {
+      const total = totalSeries(exData);
+      startExWorkPhase(dayName, idx, exData.name, total, parseRestSecs(exData.rest));
+      if (!workoutRunning && workoutElapsed === 0) startWorkoutTimer();
+      saveSession();
+      return;
+    }
+    // Start / resume
+    startExTimer(dayName, idx);
+    if (btn) { btn.textContent = '⏸ PARAR'; btn.classList.add('running'); }
+    // Auto-start the global workout stopwatch if not running
+    if (!workoutRunning && workoutElapsed === 0) startWorkoutTimer();
+    else if (!workoutRunning) {
+      workoutStartTime = Date.now(); workoutRunning = true;
+      workoutInterval = setInterval(tickWorkout, 1000);
+      document.getElementById('wbar-pause-btn').textContent = 'PAUSAR';
+      document.getElementById('wbar-pulse').classList.remove('paused');
+      document.getElementById('workout-bar').classList.add('show');
+    }
+  }
+  saveSession();
+}
+
+
+// ════════════════════════════════════════════════════════════
+// EX COUNTDOWN — para exercícios com SEG/MIN (ex: prancha, bike)
+// Tela cheia com cronômetro livre (conta pra cima). Botão "OK"
+// marca a série e entra em um descanso curto na mesma tela;
+// "FINALIZAR" encerra o exercício mesmo com séries pendentes.
+// ════════════════════════════════════════════════════════════
+let exCdInterval = null, exCdMode = null; // 'work' | 'rest'
+let exCdWorkStart = 0, exCdRestEnd = 0;
+let exCdDayName = null, exCdIdx = null, exCdExName = null, exCdSeriesTotal = 0, exCdRestSecs = 60;
+const EX_CIRC = 515;
+
+function updateExCdSeriesLabel() {
+  const label = document.getElementById('ex-cd-series-label');
+  if (!label || exCdDayName === null) return;
+  const state = getExState(exCdDayName, exCdIdx);
+  label.textContent = 'SÉRIE ' + Math.min(state.done + 1, exCdSeriesTotal) + '/' + exCdSeriesTotal;
+}
+
+function startExWorkPhase(dayName, idx, exName, seriesTotal, restSecs) {
+  clearInterval(exCdInterval);
+  exCdMode = 'work';
+  exCdDayName = dayName; exCdIdx = idx; exCdExName = exName;
+  exCdSeriesTotal = seriesTotal; exCdRestSecs = restSecs;
+  exCdWorkStart = Date.now();
+  document.getElementById('ex-cd-title').textContent = '⏱ EXERCÍCIO EM ANDAMENTO';
+  document.getElementById('ex-cd-name').textContent = exName;
+  document.getElementById('ex-countdown-overlay').classList.remove('resting');
+  document.getElementById('ex-countdown-overlay').classList.add('show', 'ex-cd-work');
+  updateExCdSeriesLabel();
+  startExTimer(dayName, idx);
+  tickExCdWork();
+  exCdInterval = setInterval(tickExCdWork, 500);
+  saveSession();
+}
+
+function tickExCdWork() {
+  const elapsedMs = Date.now() - exCdWorkStart;
+  document.getElementById('ex-cd-display').textContent = formatDuration(elapsedMs);
+}
+
+function exCdMarkSerie() {
+  if (exCdMode !== 'work' || exCdDayName === null) return;
+  const dayName = exCdDayName, idx = exCdIdx, total = exCdSeriesTotal;
+  const state = getExState(dayName, idx);
+  const num = state.done + 1;
+  markSerie(dayName, idx, num, exCdExName, exCdRestSecs, total, true);
+  const isDone = getExState(dayName, idx).done >= total;
+  if (isDone) { exCdCloseOverlay(); return; }
+  startExCdRest();
+}
+
+function startExCdRest() {
+  clearInterval(exCdInterval);
+  exCdMode = 'rest';
+  exCdRestEnd = Date.now() + exCdRestSecs * 1000;
+  document.getElementById('ex-cd-title').textContent = '⏱ DESCANSO';
+  document.getElementById('ex-cd-unit').textContent = 'SEG';
+  document.getElementById('ex-countdown-overlay').classList.remove('ex-cd-work');
+  document.getElementById('ex-countdown-overlay').classList.add('resting');
+  updateExCdSeriesLabel();
+  tickExCdRest();
+  exCdInterval = setInterval(tickExCdRest, 500);
+  saveSession();
+}
+
+function tickExCdRest() {
+  const remaining = Math.max(0, Math.ceil((exCdRestEnd - Date.now()) / 1000));
+  document.getElementById('ex-cd-display').textContent = remaining;
+  document.getElementById('ex-cd-arc').style.strokeDashoffset = EX_CIRC * (1 - remaining / exCdRestSecs);
+  if (remaining <= 0) {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    exCdSkipRest();
+  }
+}
+
+function exCdSkipRest() {
+  if (exCdDayName === null) return;
+  clearInterval(exCdInterval);
+  startExWorkPhase(exCdDayName, exCdIdx, exCdExName, exCdSeriesTotal, exCdRestSecs);
+}
+
+function exCdFinalizar() {
+  if (exCdDayName !== null) {
+    const dayName = exCdDayName, idx = exCdIdx, total = exCdSeriesTotal;
+    let state = getExState(dayName, idx);
+    while (state.done < total) {
+      markSerie(dayName, idx, state.done + 1, exCdExName, exCdRestSecs, total, true);
+      state = getExState(dayName, idx);
+    }
+  }
+  exCdCloseOverlay();
+}
+
+function exCdCloseOverlay() {
+  clearInterval(exCdInterval); exCdInterval = null;
+  if (exCdDayName !== null) stopExTimer(exCdDayName, exCdIdx);
+  document.getElementById('ex-countdown-overlay').classList.remove('show', 'resting', 'ex-cd-work');
+  exCdMode = null; exCdDayName = null; exCdIdx = null; exCdExName = null;
+  saveSession();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !exCdInterval) return;
+  if (exCdMode === 'work') tickExCdWork();
+  else if (exCdMode === 'rest') tickExCdRest();
+});
+
+// ════════════════════════════════════════════════════════════
+// REST TIMER — baseado em timestamp (imune a throttle do background)
+// ════════════════════════════════════════════════════════════
+let timerInterval=null, timerTotal=0, timerEndTime=0;
+const CIRC=515;
+
+function tickTimer(){
+  const remaining=Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+  document.getElementById('timer-display').textContent=remaining;
+  document.getElementById('timer-arc').style.strokeDashoffset=CIRC*(1-remaining/timerTotal);
+  if(remaining<=0){
+    stopTimer();
+    if(navigator.vibrate)navigator.vibrate([200,100,200]);
+    showToast('✅ Descanse finalizado!');
+  }
+}
+
+function startTimer(secs,exName){
+  stopTimer();
+  timerTotal=secs;
+  timerEndTime=Date.now()+(secs*1000);
+  document.getElementById('timer-exname').textContent=exName;
+  document.getElementById('timer-arc').style.strokeDashoffset=0;
+  document.getElementById('timer-overlay').classList.add('show');
+  tickTimer();
+  timerInterval=setInterval(tickTimer,500); // 500ms para não atrasar na volta do background
+}
+
+function stopTimer(){clearInterval(timerInterval);timerInterval=null;document.getElementById('timer-overlay').classList.remove('show');}
+function addTimerTime(s){timerEndTime+=s*1000;timerTotal+=s;tickTimer();}
+
+// Recalcula ao voltar do background
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && timerInterval) tickTimer();
+});
+
+// ════════════════════════════════════════════════════════════
+// WORKOUT STOPWATCH
+// ════════════════════════════════════════════════════════════
+let workoutStartTime=null, workoutElapsed=0, workoutRunning=false, workoutInterval=null;
+
+function startWorkoutTimer(){
+  if(workoutRunning) return;
+  workoutStartTime=Date.now(); workoutRunning=true;
+  document.getElementById('workout-bar').classList.add('show');
+  document.getElementById('wbar-pause-btn').textContent='PAUSAR';
+  document.getElementById('wbar-pulse').classList.remove('paused');
+  workoutInterval=setInterval(tickWorkout,1000);
+  tickWorkout();
+  saveSession();
+  // Re-render to hide the start button
+  renderWorkout();
+}
+function tickWorkout(){
+  if(!workoutRunning) return;
+  const total=workoutElapsed+(Date.now()-workoutStartTime);
+  document.getElementById('wbar-display').textContent=formatDuration(total);
+}
+function toggleWorkoutPause(){
+  if(!workoutRunning){
+    workoutStartTime=Date.now(); workoutRunning=true;
+    workoutInterval=setInterval(tickWorkout,1000);
+    document.getElementById('wbar-pause-btn').textContent='PAUSAR';
+    document.getElementById('wbar-pulse').classList.remove('paused');
+  } else {
+    workoutElapsed+=Date.now()-workoutStartTime;
+    workoutRunning=false; clearInterval(workoutInterval);
+    document.getElementById('wbar-pause-btn').textContent='RETOMAR';
+    document.getElementById('wbar-pulse').classList.add('paused');
+  }
+  saveSession();
+}
+function stopWorkoutTimer(){
+  if(workoutRunning) workoutElapsed+=Date.now()-workoutStartTime;
+  workoutRunning=false; clearInterval(workoutInterval); workoutInterval=null;
+  const elapsed=workoutElapsed;
+  workoutStartTime=null; workoutElapsed=0;
+  document.getElementById('workout-bar').classList.remove('show');
+  document.getElementById('wbar-display').textContent='00:00';
+  return elapsed;
+}
+function formatDuration(ms){
+  const s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+  if(h>0) return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+  return `${pad(m)}:${pad(sec)}`;
+}
+function pad(n){return String(n).padStart(2,'0');}
+
+// ════════════════════════════════════════════════════════════
+// FINISH & NOTE MODAL
+// ════════════════════════════════════════════════════════════
+function openNoteModal(){
+  document.getElementById('note-input').value='';
+  const totalMs=workoutRunning ? workoutElapsed+(Date.now()-workoutStartTime) : workoutElapsed;
+  const durEl=document.getElementById('note-duration');
+  durEl.textContent = totalMs>0 ? '⏱ Duração do treino: '+formatDuration(totalMs) : '';
+  durEl.style.display = totalMs>0 ? 'block' : 'none';
+  document.getElementById('note-modal').classList.add('show');
+}
+document.getElementById('note-modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('note-modal')) document.getElementById('note-modal').classList.remove('show');
+});
+document.getElementById('note-save-btn').addEventListener('click',()=>{
+  saveToHistory(document.getElementById('note-input').value.trim());
+  document.getElementById('note-modal').classList.remove('show');
+});
+
+function saveToHistory(note){
+  const day=workoutData?.days?.find(d=>d.name===activeDay); if(!day) return;
+  const durationMs=stopWorkoutTimer();
+  const durationStr=durationMs>0 ? formatDuration(durationMs) : null;
+  const exercises=[];
+  day.sections.forEach((sec,si)=>{
+    if(sec.type!=='exercises') return;
+    sec.items.forEach((ex,ei)=>{
+      const idx=si*100+ei; const state=getExState(day.name,idx); const total=totalSeries(ex);
+      if(state.done>0){
+        const exMs=getExElapsed(day.name,idx);
+        exercises.push({name:ex.name, seriesDone:state.done, seriesTotal:total, load:state.load, reps:ex.reps, exDuration:exMs>0?formatDuration(exMs):null});
+      }
+    });
+  });
+  const entry={id:Date.now(), date:new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}), dayName:day.name, dayTitle:day.title, duration:durationStr, exercises, note};
+  historyData.unshift(entry);
+  if(historyData.length>100) historyData=historyData.slice(0,100);
+  saveHistory();
+  // Persiste carga nos dados do treino para o próximo uso
+  day.sections.forEach((sec,si)=>{
+    if(sec.type!=='exercises') return;
+    sec.items.forEach((ex,ei)=>{
+      const idx=si*100+ei; const state=getExState(day.name,idx);
+      if(state.load) ex.lastLoad=state.load;
+    });
+  });
+  saveWorkout();
+  sessionState[activeDay]={}; exTimers={};
+  clearSession();
+  renderWorkout();
+  showToast('🎉 Treino salvo no histórico!');
+}
+
+// ════════════════════════════════════════════════════════════
+// HISTORY
+// ════════════════════════════════════════════════════════════
+function renderHistory(){
+  const container=document.getElementById('history-content');
+  if(!historyData.length){container.innerHTML='<div class="hist-empty">Nenhum treino registrado ainda.<br>Complete um treino e clique em<br><strong>⏹ Encerrar Treino</strong></div>';return;}
+  container.innerHTML=historyData.map(entry=>{
+    const color=DAY_COLORS[entry.dayName]||'#ff3c3c';
+    const exRows=entry.exercises.map(e=>`
+      <div class="hist-ex">
+        <span class="hist-ex-name">${esc(e.name)}</span>
+        <span class="hist-ex-right">
+          ${e.exDuration?`<span class="hist-ex-time">⏱${e.exDuration}</span>`:''}
+          ${e.load?`<span class="hist-ex-load">${e.load}kg</span>`:''}
+          <span class="hist-ex-series">${e.seriesDone}/${e.seriesTotal}×${e.reps?' '+e.reps:''}</span>
+        </span>
+      </div>`).join('');
+    const noteHTML=entry.note?`<div class="hist-note"><div class="hist-note-label">ANOTAÇÃO</div><div class="hist-note-text">${esc(entry.note)}</div></div>`:'';
+    const durBadge=entry.duration?` · <span style="color:var(--accent3)">⏱ ${entry.duration}</span>`:'';
+    return `<div class="hist-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="hist-date">${entry.date}${durBadge}</div>
+          <div class="hist-day" style="color:${color}">${entry.dayName}</div>
+        </div>
+        <button class="hist-del" onclick="deleteHistory(${entry.id})">🗑</button>
+      </div>
+      <div class="hist-exercises" style="margin-top:8px">${exRows}</div>
+      ${noteHTML}
+    </div>`;
+  }).join('');
+}
+function deleteHistory(id){if(!confirm('Remover este registro?'))return;historyData=historyData.filter(e=>e.id!==id);saveHistory();renderHistory();}
+
+// ════════════════════════════════════════════════════════════
+// YOUTUBE
+// ════════════════════════════════════════════════════════════
+function ytLinks(name){
+  const e=encodeURIComponent;
+  return[['📐','Técnica e postura',`${name} técnica execução musculação`],
+         ['⚡','Variações do exercício',`${name} variações musculação`]]
+  .map(([icon,label,q])=>`<a href="https://www.youtube.com/results?search_query=${e(q)}" target="_blank" class="yt-link"><span class="yt-link-icon">${icon}</span><div class="yt-link-info"><div class="yt-link-title">${label}</div><div class="yt-link-sub">${esc(name)}</div></div><span class="yt-link-arrow">↗</span></a>`).join('');
+}
+function toggleYT(btn){const p=btn.closest('.exercise-card').querySelector('.yt-panel');const o=p.classList.toggle('open');btn.textContent=o?'✕':'▶ VER';}
+
+// ════════════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ════════════════════════════════════════════════════════════
+document.getElementById('btn-export').addEventListener('click',()=>{
+  if(!workoutData?.days?.length){showToast('⚠️ Nenhum treino para exportar');return;}
+  const blob=new Blob([JSON.stringify({workout:workoutData,history:historyData},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ironlog_backup.json';a.click();
+  showToast('💾 Backup exportado!');
+});
+document.getElementById('btn-import-trigger').addEventListener('click',()=>document.getElementById('import-file').click());
+document.getElementById('import-file').addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      const wd=data.workout||data; if(!wd.days)throw new Error();
+      workoutData=wd; if(data.history)historyData=data.history;
+      saveWorkout(); saveHistory();
+      activeDay=workoutData.days[0]?.name||null; sessionState={}; exTimers={};
+      clearSession();
+      renderWorkout(); document.querySelector('[data-screen="workout"]').click();
+      showToast('✅ Backup importado!');
+    }catch{showToast('❌ Arquivo inválido');}
+  };
+  reader.readAsText(file); e.target.value='';
+});
+
+// ════════════════════════════════════════════════════════════
+// PARSE BUTTON
+// ════════════════════════════════════════════════════════════
+document.getElementById('parse-btn').addEventListener('click',()=>{
+  const input=document.getElementById('workout-input').value.trim();
+  const status=document.getElementById('parse-status');
+  if(!input){showToast('⚠️ Cole seu treino primeiro!');return;}
+  const data=parseWorkout(input);
+  if(!data.days.length){
+    status.className='parse-status err';status.style.display='block';
+    status.textContent='❌ Não encontrei dias de treino. Certifique-se que tem SEGUNDA, TERÇA etc. no texto.';return;
+  }
+  workoutData=data; saveWorkout(); activeDay=data.days[0].name; sessionState={}; exTimers={};
+  clearSession();
+  status.className='parse-status ok';status.style.display='block';
+  status.textContent=`✅ ${data.days.length} dia(s) importado(s) com sucesso!`;
+  showToast('✅ Treino importado!');
+  setTimeout(()=>{document.querySelector('[data-screen="workout"]').click();renderWorkout();},500);
+});
+
+// ════════════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(s){return String(s||'').replace(/'/g,"\\'");}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+
+// ════════════════════════════════════════════════════════════
+// SERVICE WORKER & AUTO-UPDATE
+// ════════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+
+    // Força checagem imediata a cada abertura do app
+    reg.update().catch(() => {});
+
+    // Rechecagem periódica (a cada 5min enquanto aberto)
+    setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
+
+    // Rechecagem quando volta do background
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) reg.update().catch(() => {});
+    });
+
+    // Quando um SW novo é encontrado: espera instalar e ativa automaticamente
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed') {
+          if (navigator.serviceWorker.controller) {
+            // Já existe um SW ativo — manda skipWaiting e recarrega
+            nw.postMessage('skipWaiting');
+          }
+          // Se não há controller ainda, é primeira instalação — não precisa reload
+        }
+      });
+    });
+
+  }).catch(() => {});
+
+  // Quando o SW troca (controllerchange), recarrega a página automaticamente
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// EXIT GUARD — proteção contra botão voltar durante treino
+// ════════════════════════════════════════════════════════════
+let exitPendingAction = null;
+
+function isWorkoutActive() {
+  return workoutRunning || workoutElapsed > 0;
+}
+
+function showExitModal(onConfirm) {
+  const total = workoutRunning
+    ? workoutElapsed + (Date.now() - workoutStartTime)
+    : workoutElapsed;
+  document.getElementById('exit-timer-badge').textContent = '⏱ ' + formatDuration(total);
+  exitPendingAction = onConfirm;
+  document.getElementById('exit-modal').classList.add('show');
+}
+
+function dismissExitModal() {
+  document.getElementById('exit-modal').classList.remove('show');
+  exitPendingAction = null;
+  // Re-arma o guard no histórico
+  history.pushState({ ironlog: true }, '');
+}
+
+function confirmExit() {
+  document.getElementById('exit-modal').classList.remove('show');
+  const action = exitPendingAction;
+  exitPendingAction = null;
+  if (action) action();
+}
+
+// beforeunload: fecha aba/PWA ou recarrega com treino ativo
+window.addEventListener('beforeunload', function(e) {
+  if (isWorkoutActive()) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// pushState inicial: faz o botão voltar disparar popstate em vez de sair
+history.pushState({ ironlog: true }, '');
+
+// popstate: botão voltar do Android ou navegador
+window.addEventListener('popstate', function() {
+  if (isWorkoutActive()) {
+    history.pushState({ ironlog: true }, ''); // re-arma
+    showExitModal(() => {
+      history.go(-2); // desfaz re-arma + back original
+    });
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+// INIT — restaura sessão em andamento (protege contra o app
+// ser fechado/morto pelo sistema ao minimizar)
+// ════════════════════════════════════════════════════════════
+(function restoreSession(){
+  const s = loadSessionSaved();
+  if(!s) return;
+
+  if(s.activeDay) activeDay = s.activeDay;
+  sessionState = s.sessionState || {};
+  exTimers = s.exTimers || {};
+  workoutElapsed = s.workoutElapsed || 0;
+
+  if(s.workoutRunning && s.workoutStartTime){
+    // Treino estava rodando quando o app foi encerrado — soma o tempo perdido
+    workoutElapsed += Date.now() - s.workoutStartTime;
+    workoutStartTime = Date.now();
+    workoutRunning = true;
+  } else {
+    workoutStartTime = null;
+    workoutRunning = false;
+  }
+
+  // Re-arma cronômetros de exercícios que estavam rodando (play ativo)
+  Object.keys(exTimers).forEach(key=>{
+    const t = exTimers[key];
+    if(t && t.startMs){
+      t.elapsed = (t.elapsed||0) + (Date.now() - t.startMs);
+      t.startMs = Date.now();
+    }
+  });
+
+  // Reabre a tela cheia do exercício cronometrado (seg/min) se estava aberta
+  if(s.exCd && s.exCd.dayName!==null && s.exCd.dayName!==undefined){
+    const ex = getExerciseDataFrom(workoutData, s.exCd.dayName, s.exCd.idx);
+    if(ex){
+      exCdDayName = s.exCd.dayName; exCdIdx = s.exCd.idx; exCdExName = s.exCd.exName;
+      exCdSeriesTotal = s.exCd.seriesTotal; exCdRestSecs = s.exCd.restSecs;
+      if(s.exCd.mode === 'rest'){
+        exCdMode = 'rest';
+        // Descanso corrido enquanto o app estava fechado — se já passou, pula direto pro próximo trabalho
+        if(s.exCd.restEnd && Date.now() < s.exCd.restEnd){
+          exCdRestEnd = s.exCd.restEnd;
+          document.getElementById('ex-cd-title').textContent = '⏱ DESCANSO';
+          document.getElementById('ex-cd-name').textContent = exCdExName;
+          document.getElementById('ex-cd-unit').textContent = 'SEG';
+          document.getElementById('ex-countdown-overlay').classList.remove('ex-cd-work');
+          document.getElementById('ex-countdown-overlay').classList.add('resting','show');
+          updateExCdSeriesLabel();
+          tickExCdRest();
+          exCdInterval = setInterval(tickExCdRest, 500);
+        } else {
+          startExWorkPhase(exCdDayName, exCdIdx, exCdExName, exCdSeriesTotal, exCdRestSecs);
+        }
+      } else {
+        // Estava em modo 'work' (cronômetro livre) — retoma contando a partir de onde estava
+        exCdWorkStart = s.exCd.workStart || Date.now();
+        document.getElementById('ex-cd-title').textContent = '⏱ EXERCÍCIO EM ANDAMENTO';
+        document.getElementById('ex-cd-name').textContent = exCdExName;
+        document.getElementById('ex-countdown-overlay').classList.remove('resting');
+        document.getElementById('ex-countdown-overlay').classList.add('show', 'ex-cd-work');
+        exCdMode = 'work';
+        updateExCdSeriesLabel();
+        tickExCdWork();
+        exCdInterval = setInterval(tickExCdWork, 500);
+      }
+    }
+  }
+})();
+
+function getExerciseDataFrom(wd, dayName, idx){
+  const day = wd?.days?.find(d => d.name === dayName);
+  if (!day) return null;
+  for (let si = 0; si < day.sections.length; si++) {
+    const sec = day.sections[si];
+    if (sec.type !== 'exercises') continue;
+    for (let ei = 0; ei < sec.items.length; ei++) {
+      if (si * 100 + ei === idx) return sec.items[ei];
+    }
+  }
+  return null;
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+renderWorkout();
+
+// Depois de renderizar as telas, retoma visualmente a barra do cronômetro geral
+(function resumeWorkoutBarUI(){
+  if(workoutRunning){
+    document.getElementById('workout-bar').classList.add('show');
+    document.getElementById('wbar-pause-btn').textContent='PAUSAR';
+    document.getElementById('wbar-pulse').classList.remove('paused');
+    workoutInterval = setInterval(tickWorkout, 1000);
+    tickWorkout();
+  } else if(workoutElapsed > 0){
+    document.getElementById('workout-bar').classList.add('show');
+    document.getElementById('wbar-pause-btn').textContent='RETOMAR';
+    document.getElementById('wbar-pulse').classList.add('paused');
+    document.getElementById('wbar-display').textContent = formatDuration(workoutElapsed);
+  }
+})();
+</script>
+</body>
+</html>
