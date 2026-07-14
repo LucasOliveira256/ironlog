@@ -1,0 +1,30 @@
+{
+  "buildCommand": "node -e \"const fs=require('fs');const v=Date.now().toString();let s=fs.readFileSync('sw.js','utf8');s=s.replace(/%%BUILD%%/g,v);fs.writeFileSync('sw.js',s);console.log('Build: '+v)\"",
+  "outputDirectory": ".",
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    }
+  ]
+}

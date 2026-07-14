@@ -1,0 +1,25 @@
+[build]
+  publish = "."
+  command = "node -e \"const fs=require('fs');const v=Date.now().toString();let s=fs.readFileSync('sw.js','utf8');s=s.replace(/%%BUILD%%/g,v);fs.writeFileSync('sw.js',s);console.log('Build: '+v)\""
+
+# sw.js nunca pode ser cacheado — é o arquivo que o browser verifica pra detectar update
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# index.html e raiz também sem cache
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
