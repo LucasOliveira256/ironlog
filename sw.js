@@ -1,12 +1,15 @@
-// sw.js — VERSION é substituído pelo Netlify a cada deploy via netlify.toml
+// sw.js — VERSION é substituído pelo build (vercel.json/netlify.toml) a cada deploy
 const VERSION = '%%BUILD%%';
 const CACHE = 'ironlog-' + VERSION;
-const ASSETS = ['/', '/index.html', '/manifest.json', '/icon-192.png', '/icon-512.png'];
+const ASSETS = ['/', '/index.html', '/manifest.json', '/exercises.json', '/icon-192.png', '/icon-512.png'];
+const CATALOG = '/exercises.json';
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => Promise.all(ASSETS.map(a => fetch(a, { cache: 'reload' }).then(r => c.put(a, r)))))
+      // só guarda respostas OK: um 404 não pode virar "versão offline" de nada
+      .then(c => Promise.all(ASSETS.map(a =>
+        fetch(a, { cache: 'reload' }).then(r => { if (r && r.ok) return c.put(a, r); }).catch(() => {}))))
       .then(() => self.skipWaiting())
   );
 });
@@ -20,18 +23,39 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.mode === 'navigate') {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+
+  // App shell: rede primeiro, cache se offline
+  if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).then(res => {
+      fetch(req).then(res => {
         const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
+        caches.open(CACHE).then(c => c.put(req, clone));
         return res;
       }).catch(() => caches.match('/index.html'))
     );
     return;
   }
+
+  // Catálogo de exercícios: responde do cache na hora e atualiza em segundo plano
+  // (o app ainda guarda uma cópia própria no IndexedDB como segunda camada offline)
+  if (url.pathname === CATALOG) {
+    e.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const cached = await cache.match(CATALOG);
+      const refresh = fetch(req).then(r => { if (r && r.ok) { cache.put(CATALOG, r.clone()); } return r; }).catch(() => null);
+      e.waitUntil(refresh);
+      if (cached) return cached;
+      const fresh = await refresh;
+      return fresh || new Response('', { status: 503, statusText: 'offline' });
+    })());
+    return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match('/index.html')))
+    caches.match(req).then(cached => cached || fetch(req).catch(() => caches.match('/index.html')))
   );
 });
 

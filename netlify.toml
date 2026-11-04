@@ -23,3 +23,9 @@
   for = "/manifest.json"
   [headers.values]
     Cache-Control = "no-cache, must-revalidate"
+
+# catálogo de exercícios: o SW responde do cache e revalida; o servidor sempre revalida
+[[headers]]
+  for = "/exercises.json"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
