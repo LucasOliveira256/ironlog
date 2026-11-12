@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>IRONLOG · Admin</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#12121a;--card:#1a1a26;--border:#2a2a3a;--accent:#ff3c3c;--accent2:#ff8c42;--accent3:#4ecca3;--text:#e8e8f0;--muted:#8a8aa8;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:0 0 60px}
+header{position:sticky;top:0;z-index:5;background:rgba(10,10,15,.96);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.logo{font-weight:800;letter-spacing:4px;font-size:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo small{letter-spacing:1px;font-size:11px;color:var(--muted);-webkit-text-fill-color:var(--muted);margin-left:8px;font-weight:400}
+nav{display:flex;gap:6px}
+nav a,button{font:inherit}
+.tab{background:transparent;border:1.5px solid var(--border);color:var(--muted);border-radius:20px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+main{max-width:980px;margin:0 auto;padding:16px}
+h2{font-size:12px;letter-spacing:2px;color:var(--muted);margin:18px 0 8px;text-transform:uppercase}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:0}
+input,select{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:9px 11px;font:inherit;min-width:0}
+input:focus,select:focus{outline:2px solid var(--accent3);outline-offset:1px}
+.btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:var(--accent3)}
+.btn.pri{background:linear-gradient(135deg,var(--accent3),#2ab87a);border:0;color:#000;font-weight:700}
+.btn.dan{color:var(--accent);border-color:rgba(255,60,60,.4)}
+.btn.sm{padding:5px 9px;font-size:12px}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted)}
+.pill.admin{color:var(--accent2);border-color:rgba(255,140,66,.5)}.pill.off{color:var(--accent);border-color:rgba(255,60,60,.5)}.pill.ok{color:var(--accent3);border-color:rgba(78,204,163,.5)}
+.u{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.u b{font-size:16px}
+.meta{color:var(--muted);font-size:12px;margin-top:2px}
+.creds{margin:10px 0 4px;display:flex;flex-direction:column;gap:6px}
+.cred{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--surface);border-radius:10px;padding:7px 10px;font-size:12px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{padding:7px 6px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.link{word-break:break-all;background:var(--surface);border:1px dashed var(--accent3);border-radius:10px;padding:10px;font-family:ui-monospace,monospace;font-size:12px;margin:10px 0}
+dialog{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:520px;width:92vw}
+dialog::backdrop{background:rgba(0,0,0,.75)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 16px;opacity:0;transition:.25s;pointer-events:none;z-index:20}
+.toast.show{opacity:1}
+.empty{color:var(--muted);text-align:center;padding:18px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">IRONLOG<small>ADMIN</small></div>
+  <nav>
+    <button class="tab on" data-t="users">USUÁRIOS</button><button class="tab" data-t="invites">CONVITES</button><button class="tab" data-t="audit">AUDITORIA</button>
+    <a class="tab" href="/" style="text-decoration:none">← APP</a>
+  </nav>
+</header>
+<main id="main"><div class="empty">Carregando…</div></main>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast"></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let tab = 'users', data = null, me = null;
+const fmt = t => t ? new Date(t).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+const size = b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600); }
+async function api(method, url, body) {
+  const r = await fetch(url, { method, headers: { 'x-ironlog': '1', ...(body ? { 'content-type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, credentials: 'same-origin' });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { if (r.status === 401 || r.status === 403) location.href = '/'; throw new Error(j.error || 'Erro ' + r.status); }
+  return j;
+}
+async function load() { try { data = await api('GET', '/api/admin/overview'); render(); } catch (e) { $('#main').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; } }
+document.querySelectorAll('.tab[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; document.querySelectorAll('.tab[data-t]').forEach(x => x.classList.toggle('on', x === b)); render(); });
+
+function render() {
+  if (tab === 'users') return renderUsers();
+  if (tab === 'invites') return renderInvites();
+  return renderAudit();
+}
+function renderUsers() {
+  const u = data.users;
+  $('#main').innerHTML = `<h2>${u.length} usuário(s) · banco ${size(data.dbSize)}</h2>` + (u.map(x => `
+  <div class="card"><div class="u"><div><b>${esc(x.name)}</b> <span class="pill ${x.role === 'admin' ? 'admin' : ''}">${x.role === 'admin' ? 'ADMIN' : 'USUÁRIO'}</span> ${x.disabled ? '<span class="pill off">DESATIVADO</span>' : ''}
+    <div class="meta">Criado ${fmt(x.createdAt)} · último acesso ${fmt(x.lastSeenAt)} · ${x.sessions} sessão(ões) · ${x.push} aparelho(s) com aviso</div>
+    <div class="meta">${x.records} registros · ${size(x.bytes)} sincronizados</div></div></div>
+    <div class="creds">${x.credentials.length ? x.credentials.map(c => `<div class="cred"><span>🔑 <b>${esc(c.label || 'Passkey')}</b> ${c.backedUp ? '<span class="pill ok">sincronizada</span>' : ''}<br><span class="meta">criada ${fmt(c.createdAt)} · usada ${fmt(c.lastUsedAt)}</span></span>
+      <button class="btn sm dan" data-act="delcred" data-u="${esc(x.id)}" data-c="${esc(c.id)}">Remover</button></div>`).join('') : '<div class="meta">Sem passkeys — gere um convite de recuperação.</div>'}</div>
+    <div class="acts">
+      <button class="btn sm pri" data-act="recover" data-u="${esc(x.id)}" data-n="${esc(x.name)}">Convite de recuperação</button>
+      <button class="btn sm" data-act="sessions" data-u="${esc(x.id)}">Derrubar sessões</button>
+      <button class="btn sm" data-act="role" data-u="${esc(x.id)}" data-r="${x.role === 'admin' ? 'user' : 'admin'}">${x.role === 'admin' ? 'Tornar usuário' : 'Tornar admin'}</button>
+      <button class="btn sm" data-act="${x.disabled ? 'enable' : 'disable'}" data-u="${esc(x.id)}">${x.disabled ? 'Reativar' : 'Desativar'}</button>
+      <a class="btn sm" style="text-decoration:none" href="/api/admin/users/${encodeURIComponent(x.id)}/export">Exportar dados</a>
+      <button class="btn sm dan" data-act="del" data-u="${esc(x.id)}" data-n="${esc(x.name)}">Apagar</button>
+    </div></div>`).join('') || '<div class="empty">Nenhum usuário.</div>');
+}
+function renderInvites() {
+  const stat = { pendente: 'ok', usado: '', expirado: 'off', revogado: 'off' };
+  $('#main').innerHTML = `<h2>Novo convite</h2><div class="card"><div class="row">
+    <input id="inv-name" class="grow" placeholder="Nome da pessoa" maxlength="60" aria-label="Nome">
+    <select id="inv-role" aria-label="Papel"><option value="user">Usuário</option><option value="admin">Administrador</option></select>
+    <select id="inv-hours" aria-label="Validade"><option value="24">24 h</option><option value="72" selected>3 dias</option><option value="168">7 dias</option><option value="336">14 dias</option></select>
+    <button class="btn pri" data-act="newinv">Gerar convite</button></div>
+    <div class="meta" style="margin-top:8px">O link é de <b>uso único</b> e só aparece uma vez. Cada pessoa cria a própria passkey no aparelho (máx. ${data.maxPasskeys}).</div></div>
+    <h2>Convites</h2><div class="card">${data.invites.length ? `<table><tr><th>Nome</th><th>Tipo</th><th>Estado</th><th>Validade</th><th></th></tr>` + data.invites.map(i => `<tr><td>${esc(i.label)}</td><td>${i.userId ? 'recuperação' : (i.role === 'admin' ? 'admin' : 'novo usuário')}</td>
+      <td><span class="pill ${stat[i.status]}">${i.status}</span></td><td>${fmt(i.expiresAt)}</td><td>${i.status === 'pendente' ? `<button class="btn sm dan" data-act="revinv" data-i="${esc(i.id)}">Revogar</button>` : ''}</td></tr>`).join('') + '</table>' : '<div class="empty">Nenhum convite.</div>'}</div>`;
+}
+async function renderAudit() {
+  $('#main').innerHTML = '<div class="empty">Carregando…</div>';
+  const a = await api('GET', '/api/admin/audit?limit=150');
+  $('#main').innerHTML = '<h2>Últimos eventos</h2><div class="card"><table><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>IP</th></tr>' + a.rows.map(r => `<tr><td>${fmt(r.ts)}</td><td>${esc(r.actor || '—')}</td><td>${esc(r.action)}</td><td>${esc(r.ip || '')}</td></tr>`).join('') + '</table></div>';
+}
+function showLink(title, res) {
+  const d = $('#dlg'); const canShare = !!navigator.share;
+  d.innerHTML = `<h3 style="margin-bottom:6px">${esc(title)}</h3><div class="meta">Válido até ${fmt(res.expiresAt)} · uso único · <b>não será exibido de novo</b></div>
+    <div class="link" id="lnk">${esc(res.url)}</div><div class="row"><button class="btn pri" id="cp">Copiar link</button>${canShare ? '<button class="btn" id="sh">Compartilhar</button>' : ''}<button class="btn" id="cl" style="margin-left:auto">Fechar</button></div>`;
+  d.showModal();
+  $('#cp').onclick = async () => { try { await navigator.clipboard.writeText(res.url); toast('Link copiado'); } catch (e) { const r = document.createRange(); r.selectNodeContents($('#lnk')); getSelection().removeAllRanges(); getSelection().addRange(r); toast('Selecione e copie'); } };
+  if (canShare) $('#sh').onclick = () => navigator.share({ title: 'Convite IRONLOG', text: 'Seu convite para o IRONLOG:', url: res.url }).catch(() => {});
+  $('#cl').onclick = () => { d.close(); d.innerHTML = ''; };
+}
+document.addEventListener('click', async ev => {
+  const b = ev.target.closest('[data-act]'); if (!b) return; const a = b.dataset.act;
+  try {
+    if (a === 'newinv') { const name = $('#inv-name').value.trim(); if (!name) return toast('Informe o nome'); const r = await api('POST', '/api/admin/invites', { label: name, role: $('#inv-role').value, hours: Number($('#inv-hours').value) }); showLink('Convite para ' + name, r); }
+    else if (a === 'recover') { const r = await api('POST', '/api/admin/invites', { userId: b.dataset.u, hours: 24 }); showLink('Recuperação de ' + b.dataset.n, r); }
+    else if (a === 'revinv') { await api('DELETE', '/api/admin/invites/' + b.dataset.i); toast('Convite revogado'); }
+    else if (a === 'delcred') { if (!confirm('Remover esta passkey? O aparelho perde o acesso.')) return; await api('DELETE', `/api/admin/users/${b.dataset.u}/passkeys/${encodeURIComponent(b.dataset.c)}`); toast('Passkey removida'); }
+    else if (a === 'sessions') { const r = await api('POST', `/api/admin/users/${b.dataset.u}/revoke-sessions`); toast(r.revoked + ' sessão(ões) derrubada(s)'); }
+    else if (a === 'role') { await api('POST', `/api/admin/users/${b.dataset.u}/role`, { role: b.dataset.r }); toast('Papel atualizado'); }
+    else if (a === 'disable' || a === 'enable') { if (a === 'disable' && !confirm('Desativar este usuário? As sessões caem na hora.')) return; await api('POST', `/api/admin/users/${b.dataset.u}/${a}`); toast(a === 'disable' ? 'Desativado' : 'Reativado'); }
+    else if (a === 'del') { const n = prompt(`Apagar "${b.dataset.n}" e TODOS os dados dele.\nPara confirmar, digite o nome exato:`); if (n == null) return; await api('DELETE', '/api/admin/users/' + b.dataset.u, { confirm: n }); toast('Usuário apagado'); }
+    await load();
+  } catch (e) { toast('⚠️ ' + e.message); }
+});
+load();
+</script>
+</body>
+</html>

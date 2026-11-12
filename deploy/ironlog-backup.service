@@ -1,0 +1,15 @@
+[Unit]
+Description=IRONLOG — backup diário do banco SQLite
+
+[Service]
+Type=oneshot
+User=ironlog
+Group=ironlog
+EnvironmentFile=/etc/ironlog/ironlog.env
+ExecStart=/opt/ironlog/deploy/backup.sh
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ReadWritePaths=/var/backups/ironlog /var/lib/ironlog
+UMask=0077

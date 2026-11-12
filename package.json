@@ -1,0 +1,27 @@
+{
+  "name": "ironlog-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor IRONLOG: passkeys, convites, sincronização e push",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test --test-reporter=spec test/*.test.js"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/rate-limit": "^10.0.0",
+    "@fastify/static": "^8.0.0",
+    "@simplewebauthn/server": "^13.0.0",
+    "better-sqlite3": "^12.0.0",
+    "fastify": "^5.0.0",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.8",
+    "jsdom": "^31.0.0"
+  }
+}

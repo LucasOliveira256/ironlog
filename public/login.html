@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="robots" content="noindex,nofollow">
+<title>IRONLOG · Entrar</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#12121a;--card:#1a1a26;--border:#2a2a3a;--accent:#ff3c3c;--accent2:#ff8c42;--accent3:#4ecca3;--text:#e8e8f0;--muted:#8a8aa8;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{width:100%;max-width:380px;text-align:center}
+.logo{font-weight:800;letter-spacing:6px;font-size:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:6px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:26px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px 20px}
+h1{font-size:18px;margin-bottom:6px}
+p{color:var(--muted);font-size:13px;margin-bottom:16px}
+input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:12px;font:inherit;margin-bottom:12px;text-align:center}
+input:focus{outline:2px solid var(--accent3);outline-offset:1px}
+button{width:100%;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:700;letter-spacing:1px;cursor:pointer;background:linear-gradient(135deg,var(--accent3),#2ab87a);color:#000}
+button.sec{background:transparent;color:var(--muted);border:1px solid var(--border);margin-top:10px;font-weight:500;letter-spacing:0;padding:11px}
+button:disabled{opacity:.5;cursor:wait}
+.msg{margin-top:14px;font-size:13px;min-height:20px}
+.err{color:var(--accent)}.ok{color:var(--accent3)}
+.hidden{display:none}
+.note{margin-top:18px;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">IRONLOG</div>
+  <div class="sub">Acesso somente por convite</div>
+  <div class="card">
+    <div id="v-login">
+      <h1>Entrar</h1>
+      <p>Use a passkey deste aparelho (biometria ou PIN). Sem senha.</p>
+      <button id="b-login">ENTRAR COM PASSKEY</button>
+      <button class="sec" id="b-have">Tenho um convite</button>
+    </div>
+    <div id="v-invite" class="hidden">
+      <h1>Você foi convidado 🎉</h1>
+      <p>Crie sua passkey neste aparelho. Ela fica protegida pela biometria ou PIN do celular.</p>
+      <input id="i-name" type="text" maxlength="60" placeholder="Seu nome" autocomplete="name" aria-label="Seu nome">
+      <input id="i-token" type="text" class="hidden" placeholder="Cole o link ou código do convite" aria-label="Convite" autocomplete="off">
+      <button id="b-reg">CRIAR PASSKEY</button>
+      <button class="sec" id="b-back">Já tenho conta</button>
+    </div>
+    <div id="v-unsupported" class="hidden"><h1>Navegador sem suporte</h1><p>Este navegador não oferece passkeys. Use um Chrome, Edge, Safari ou Firefox atualizado, em HTTPS.</p></div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+  </div>
+  <div class="note">Perdeu o aparelho? Peça ao administrador um convite de recuperação.</div>
+</div>
+<script src="/ironlog-auth.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id), q = new URLSearchParams(location.search);
+  const show = v => { for (const x of ['v-login','v-invite','v-unsupported']) $(x).classList.toggle('hidden', x !== v); $('msg').textContent = ''; };
+  const say = (t, cls) => { $('msg').textContent = t; $('msg').className = 'msg ' + (cls || ''); };
+  // só caminhos do próprio site (evita redirecionamento aberto)
+  const next = (() => { const n = q.get('next') || '/'; return /^\/(?!\/)[\w\-./?=&%#]*$/.test(n) ? n : '/'; })();
+  let invite = q.get('invite') || '';
+  const parseToken = s => { s = String(s || '').trim(); try { const u = new URL(s); return u.searchParams.get('invite') || ''; } catch (_) { return s; } };
+  const busy = (on, ...btns) => btns.forEach(b => b.disabled = on);
+
+  if (!IronAuth.supported()) { show('v-unsupported'); return; }
+  show(invite ? 'v-invite' : 'v-login');
+  if (invite) $('i-token').classList.add('hidden');
+
+  $('b-have').onclick = () => { show('v-invite'); $('i-token').classList.remove('hidden'); };
+  $('b-back').onclick = () => { invite = ''; show('v-login'); };
+  $('b-login').onclick = async () => {
+    busy(true, $('b-login')); say('Aguardando a passkey…');
+    try { await IronAuth.login(); say('Entrou! Abrindo…', 'ok'); location.replace(next); }
+    catch (e) { say(e.message, 'err'); busy(false, $('b-login')); }
+  };
+  $('b-reg').onclick = async () => {
+    const tok = invite || parseToken($('i-token').value);
+    if (!tok) return say('Cole o link ou código do convite.', 'err');
+    busy(true, $('b-reg')); say('Criando a passkey…');
+    try {
+      const label = (navigator.userAgentData && navigator.userAgentData.platform) || (navigator.platform || 'Aparelho');
+      await IronAuth.register(tok, $('i-name').value.trim() || undefined, label);
+      history.replaceState(null, '', '/login'); say('Conta criada! Abrindo…', 'ok'); location.replace(next);
+    } catch (e) { say(e.message, 'err'); busy(false, $('b-reg')); }
+  };
+})();
+</script>
+</body>
+</html>

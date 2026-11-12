@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Administração pelo console:  ironlogctl bootstrap-admin "Seu Nome"   |   ironlogctl help
+set -euo pipefail
+[ -f /etc/ironlog/ironlog.env ] || { echo "Falta /etc/ironlog/ironlog.env"; exit 1; }
+if [ "$(id -un)" = "ironlog" ]; then RUN=(); else RUN=(runuser -u ironlog --); fi
+exec "${RUN[@]}" bash -c 'set -a; . /etc/ironlog/ironlog.env; set +a; exec /usr/bin/node /opt/ironlog/src/cli.js "$@"' _ "$@"

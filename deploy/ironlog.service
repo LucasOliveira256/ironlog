@@ -1,0 +1,36 @@
+[Unit]
+Description=IRONLOG (app de treino: passkeys, sincronização e avisos)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ironlog
+Group=ironlog
+WorkingDirectory=/opt/ironlog
+EnvironmentFile=/etc/ironlog/ironlog.env
+ExecStart=/usr/bin/node /opt/ironlog/src/server.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+LimitNOFILE=4096
+MemoryMax=400M
+
+# Endurecimento. Se o serviço falhar com "status=226/NAMESPACE" numa LXC sem privilégio,
+# ative "nesting=1" nas opções da LXC ou comente as linhas Protect*/Private*.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+ReadWritePaths=/var/lib/ironlog
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
